@@ -1,4 +1,5 @@
-﻿using CrudByNgAndDotNet.API.Models.DTO;
+﻿using CrudByNgAndDotNet.API.Helper;
+using CrudByNgAndDotNet.API.Models.DTO;
 using CrudByNgAndDotNet.API.Repositories.Interface;
 using MailKit;
 using Microsoft.AspNetCore.Http;
@@ -22,11 +23,11 @@ namespace CrudByNgAndDotNet.API.Controllers
             try
             {
                 await mailService.SendEmailAsync(request);
-                return Ok();
+                return Ok(ApiResponseHelper.SuccessResult(request,$"Email has been sent to : {request.ToEmail}"));
             }
             catch (Exception ex)
             {
-
+                Console.WriteLine(ex.ToString());
                 throw;
             }
 

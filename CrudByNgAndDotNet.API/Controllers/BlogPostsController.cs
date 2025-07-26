@@ -1,8 +1,8 @@
-﻿using CrudByNgAndDotNet.API.Models.Domain;
+﻿using CrudByNgAndDotNet.API.Helper;
+using CrudByNgAndDotNet.API.Models.Domain;
 using CrudByNgAndDotNet.API.Models.DTO;
 using CrudByNgAndDotNet.API.Repositories.Interface;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CrudByNgAndDotNet.API.Controllers
@@ -47,6 +47,9 @@ namespace CrudByNgAndDotNet.API.Controllers
                 if (existingCategory is not null)
                 {
                     blogPost.Categories.Add(existingCategory);
+                } else
+                {
+                    return BadRequest(ApiResponseHelper.FailureResult("Category not found.", StatusCodes.Status400BadRequest));
                 }
             }
 
@@ -72,7 +75,7 @@ namespace CrudByNgAndDotNet.API.Controllers
                 }).ToList()
             };
 
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response,"Blog added successfuly."));
         }
 
 
@@ -81,32 +84,36 @@ namespace CrudByNgAndDotNet.API.Controllers
         public async Task<IActionResult> GetAllBlogPosts()
         {
             var blogPosts = await blogPostRepository.GetAllAsync();
-
-            // Convert Domain model to DTO
-            var response = new List<BlogPostDto>();
-            foreach (var blogPost in blogPosts)
+            if(blogPosts is not null)
             {
-                response.Add(new BlogPostDto
+                // Convert Domain model to DTO
+                var response = new List<BlogPostDto>();
+                foreach (var blogPost in blogPosts)
                 {
-                    Id = blogPost.Id,
-                    Author = blogPost.Author,
-                    Content = blogPost.Content,
-                    FeaturedImageUrl = blogPost.FeaturedImageUrl,
-                    IsVisible = blogPost.IsVisible,
-                    PublishedDate = blogPost.PublishedDate,
-                    ShortDescription = blogPost.ShortDescription,
-                    Title = blogPost.Title,
-                    UrlHandle = blogPost.UrlHandle,
-                    Categories = blogPost.Categories.Select(x => new CategoryDto
+                    response.Add(new BlogPostDto
                     {
-                        Id = x.Id,
-                        Name = x.Name,
-                        UrlHandle = x.UrlHandle
-                    }).ToList()
-                });
-            }
+                        Id = blogPost.Id,
+                        Author = blogPost.Author,
+                        Content = blogPost.Content,
+                        FeaturedImageUrl = blogPost.FeaturedImageUrl,
+                        IsVisible = blogPost.IsVisible,
+                        PublishedDate = blogPost.PublishedDate,
+                        ShortDescription = blogPost.ShortDescription,
+                        Title = blogPost.Title,
+                        UrlHandle = blogPost.UrlHandle,
+                        Categories = blogPost.Categories.Select(x => new CategoryDto
+                        {
+                            Id = x.Id,
+                            Name = x.Name,
+                            UrlHandle = x.UrlHandle
+                        }).ToList()
+                    });
+                }
 
-            return Ok(response);
+                return Ok(ApiResponseHelper.SuccessResult(response));
+            }
+            return NotFound(ApiResponseHelper.FailureResult("Data not found.", StatusCodes.Status404NotFound));
+           
         }
 
 
@@ -120,7 +127,7 @@ namespace CrudByNgAndDotNet.API.Controllers
 
             if (blogPost is null)
             {
-                return NotFound();
+                return NotFound(ApiResponseHelper.FailureResult("Data not found.", StatusCodes.Status404NotFound));
             }
 
             // Convert Domain Model to DTO
@@ -143,7 +150,7 @@ namespace CrudByNgAndDotNet.API.Controllers
                 }).ToList()
             };
 
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response));
         }
 
 
@@ -157,7 +164,7 @@ namespace CrudByNgAndDotNet.API.Controllers
 
             if (blogPost is null)
             {
-                return NotFound();
+                return NotFound(ApiResponseHelper.FailureResult("Data not found.", StatusCodes.Status404NotFound));
             }
 
             // Convert Domain Model to DTO
@@ -180,7 +187,7 @@ namespace CrudByNgAndDotNet.API.Controllers
                 }).ToList()
             };
 
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response));
         }
 
         // PUT: {apibaseurl}/api/blogposts/{id}
@@ -221,7 +228,7 @@ namespace CrudByNgAndDotNet.API.Controllers
 
             if (updatedBlogPost == null)
             {
-                return NotFound();
+                return NotFound(ApiResponseHelper.FailureResult("Data not found.", StatusCodes.Status404NotFound));
             }
 
             // Convert Domain model back to DTO
@@ -244,7 +251,7 @@ namespace CrudByNgAndDotNet.API.Controllers
                 }).ToList()
             };
 
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response));
         }
 
         // DELETE: {apibaseurl}/api/blogposts/{id}
@@ -257,7 +264,7 @@ namespace CrudByNgAndDotNet.API.Controllers
 
             if (deletedBlogPost == null)
             {
-                return NotFound();
+                return NotFound(ApiResponseHelper.FailureResult("Data not found.", StatusCodes.Status404NotFound));
             }
 
             // Convert Domain model to DTO
@@ -274,7 +281,7 @@ namespace CrudByNgAndDotNet.API.Controllers
                 UrlHandle = deletedBlogPost.UrlHandle
             };
 
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response));
         }
     }
 }

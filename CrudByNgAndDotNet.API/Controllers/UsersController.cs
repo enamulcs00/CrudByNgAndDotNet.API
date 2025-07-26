@@ -1,6 +1,8 @@
-﻿using CrudByNgAndDotNet.API.Models;
+﻿using CrudByNgAndDotNet.API.Helper;
+using CrudByNgAndDotNet.API.Models;
 using CrudByNgAndDotNet.API.Models.Domain;
 using CrudByNgAndDotNet.API.Models.DTO;
+using CrudByNgAndDotNet.API.Repositories.Implementation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -40,7 +42,23 @@ namespace CrudByNgAndDotNet.API.Controllers
                     Email = user.Email,
                 });
             }
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response));
+        }
+        // DELETE: {apibaseurl}/api/blogposts/{id}
+        [HttpDelete]
+        [Route("{id:Guid}")]
+        [Authorize(Roles = "Writer")]
+        public async Task<IActionResult> DeleteUser([FromRoute] string id)
+        {
+            var user = await userManager.FindByIdAsync(id);
+            if (user == null) 
+                return NotFound();
+
+            var result = await userManager.DeleteAsync(user);
+            if (result.Succeeded)
+                return NoContent();  // Return 204 No Content for a successful delete.
+
+            return StatusCode(500, "Internal server error");
         }
     }
 }
