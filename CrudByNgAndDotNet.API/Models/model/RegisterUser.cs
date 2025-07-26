@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 
-namespace CrudByNgAndDotNet.API.Models.DTO
+namespace CrudByNgAndDotNet.API.Models.model
 {
-    public class RegisterRequestDto 
+    public class RegisterUser : IdentityUser
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }

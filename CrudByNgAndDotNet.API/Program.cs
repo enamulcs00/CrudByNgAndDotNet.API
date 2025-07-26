@@ -2,6 +2,7 @@ using CrudByNgAndDotNet.API.Data;
 using CrudByNgAndDotNet.API.Helper;
 using CrudByNgAndDotNet.API.Models.Domain;
 using CrudByNgAndDotNet.API.Models.DTO;
+using CrudByNgAndDotNet.API.Models.model;
 using CrudByNgAndDotNet.API.Models.Settings;
 using CrudByNgAndDotNet.API.Repositories.Implementation;
 using CrudByNgAndDotNet.API.Repositories.Interface;
@@ -58,9 +59,9 @@ builder.Services.AddScoped<IImageRepository, ImageRepository>();
 builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 
 
-builder.Services.AddIdentityCore<RegisterRequestDto>()
+builder.Services.AddIdentityCore<RegisterUser>()
     .AddRoles<IdentityRole>()
-    .AddTokenProvider<DataProtectorTokenProvider<RegisterRequestDto>>("CrudByNgAndDotNet")
+    .AddTokenProvider<DataProtectorTokenProvider<RegisterUser>>("CrudByNgAndDotNet")
     .AddEntityFrameworkStores<AuthDbContext>()
     .AddDefaultTokenProviders();
 

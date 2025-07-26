@@ -1,11 +1,12 @@
 ﻿using CrudByNgAndDotNet.API.Models.DTO;
+using CrudByNgAndDotNet.API.Models.model;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CrudByNgAndDotNet.API.Data
 {
-    public class AuthDbContext : IdentityDbContext<RegisterRequestDto>
+    public class AuthDbContext : IdentityDbContext<RegisterUser>
     {
         public AuthDbContext(DbContextOptions<AuthDbContext> options) : base(options)
         {

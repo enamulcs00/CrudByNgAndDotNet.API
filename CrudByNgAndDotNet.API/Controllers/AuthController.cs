@@ -7,16 +7,17 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using CrudByNgAndDotNet.API.Models.Domain;
 using CrudByNgAndDotNet.API.Helper;
+using CrudByNgAndDotNet.API.Models.model;
 namespace CrudByNgAndDotNet.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<RegisterRequestDto> userManager;
+        private readonly UserManager<RegisterUser> userManager;
         private readonly ITokenRepository tokenRepository;
         private readonly ISendEmail _emailSender;
-        public AuthController(UserManager<RegisterRequestDto> userManager,
+        public AuthController(UserManager<RegisterUser> userManager,
             ITokenRepository tokenRepository,
             ISendEmail emailSender)
         {
@@ -66,7 +67,7 @@ namespace CrudByNgAndDotNet.API.Controllers
         public async Task<IActionResult> Register([FromBody] RegisterViewModel request)
         {
             // Create IdentityUser object
-            var user = new RegisterRequestDto
+            var user = new RegisterUser
             {
                 FirstName = request.FirstName,
                 LastName = request.LastName,

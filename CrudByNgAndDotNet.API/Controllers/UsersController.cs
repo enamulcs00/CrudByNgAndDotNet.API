@@ -2,6 +2,7 @@
 using CrudByNgAndDotNet.API.Models;
 using CrudByNgAndDotNet.API.Models.Domain;
 using CrudByNgAndDotNet.API.Models.DTO;
+using CrudByNgAndDotNet.API.Models.model;
 using CrudByNgAndDotNet.API.Repositories.Implementation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -15,8 +16,8 @@ namespace CrudByNgAndDotNet.API.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly UserManager<RegisterRequestDto> userManager;
-        public UsersController(UserManager<RegisterRequestDto> userManager)
+        private readonly UserManager<RegisterUser> userManager;
+        public UsersController(UserManager<RegisterUser> userManager)
         {
             this.userManager = userManager;
         }
