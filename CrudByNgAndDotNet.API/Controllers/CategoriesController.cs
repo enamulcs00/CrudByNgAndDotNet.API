@@ -1,9 +1,8 @@
 ﻿using CrudByNgAndDotNet.API.Data;
+using CrudByNgAndDotNet.API.Helper;
 using CrudByNgAndDotNet.API.Models.Domain;
 using CrudByNgAndDotNet.API.Models.DTO;
 using CrudByNgAndDotNet.API.Repositories.Interface;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CrudByNgAndDotNet.API.Controllers
@@ -42,7 +41,7 @@ namespace CrudByNgAndDotNet.API.Controllers
                 UrlHandle = category.UrlHandle
             };
 
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response));
         }
 
         // GET: https://localhost:7226/api/Categories?query=html&sortBy=name&sortDirection=desc
@@ -70,7 +69,7 @@ namespace CrudByNgAndDotNet.API.Controllers
                 });
             }
 
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response));
         }
 
         // GET: https://localhost:7226/api/categories/{id}
@@ -82,7 +81,7 @@ namespace CrudByNgAndDotNet.API.Controllers
 
             if (existingCategory is null)
             {
-                return NotFound();
+                return NotFound(ApiResponseHelper.FailureResult("Data not found.", StatusCodes.Status404NotFound));
             }
 
             var response = new CategoryDto
@@ -92,13 +91,13 @@ namespace CrudByNgAndDotNet.API.Controllers
                 UrlHandle = existingCategory.UrlHandle
             };
 
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response));
         }
 
         // PUT: https://localhost:7226/api/categories/{id}
         [HttpPut]
         [Route("{id:Guid}")]
-        [Authorize(Roles = "Writer")]
+       
         public async Task<IActionResult> EditCategory([FromRoute] Guid id, UpdateCategoryRequestDto request)
         {
             // Convert DTO to Domain Model
@@ -113,7 +112,7 @@ namespace CrudByNgAndDotNet.API.Controllers
 
             if (category == null)
             {
-                return NotFound();
+                return NotFound(ApiResponseHelper.FailureResult("Data not found.", StatusCodes.Status404NotFound));
             }
 
             // Convert Domain model to DTO
@@ -124,21 +123,20 @@ namespace CrudByNgAndDotNet.API.Controllers
                 UrlHandle = category.UrlHandle
             };
 
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response));
         }
 
 
         // DELETE: https://localhost:7226/api/categories/{id}
         [HttpDelete]
         [Route("{id:Guid}")]
-        [Authorize(Roles = "Writer")]
         public async Task<IActionResult> DeleteCategory([FromRoute] Guid id)
         {
             var category = await categoryRepository.DeleteAsync(id);
 
             if (category is null)
             {
-                return NotFound();
+                return NotFound(ApiResponseHelper.FailureResult("Data not found.", StatusCodes.Status404NotFound));
             }
 
             // Convert Domain model to DTO
@@ -149,7 +147,7 @@ namespace CrudByNgAndDotNet.API.Controllers
                 UrlHandle = category.UrlHandle
             };
 
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response));
         }
 
 
@@ -161,7 +159,7 @@ namespace CrudByNgAndDotNet.API.Controllers
         {
             var count = await categoryRepository.GetCount();
 
-            return Ok(count);
+            return Ok(ApiResponseHelper.SuccessResult(count));
         }
     }
 }

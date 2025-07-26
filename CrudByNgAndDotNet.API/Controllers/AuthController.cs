@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using CrudByNgAndDotNet.API.Models.Domain;
+using CrudByNgAndDotNet.API.Helper;
 namespace CrudByNgAndDotNet.API.Controllers
 {
     [Route("api/[controller]")]
@@ -29,21 +30,19 @@ namespace CrudByNgAndDotNet.API.Controllers
         [Route("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
-            // Check Email
-            var identityUser = await userManager.FindByEmailAsync(request.Email);
-
-            if (identityUser is not null)
+            if (!ModelState.IsValid)
             {
-                // Check Password
-                var checkPasswordResult = await userManager.CheckPasswordAsync(identityUser, request.Password);
-
+                return BadRequest(ApiResponseHelper.FailureResult("Invalid request", StatusCodes.Status400BadRequest));
+            }
+            var identityUser = await userManager.FindByEmailAsync(request.Email);
+            if (identityUser is not null)
+            { 
+            var checkPasswordResult = await userManager.CheckPasswordAsync(identityUser, request.Password);
                 if (checkPasswordResult)
                 {
                     var roles = await userManager.GetRolesAsync(identityUser);
-
-                    // Create a Token and Response
+                   // Create a Token and Response
                     var jwtToken = tokenRepository.CreateJwtToken(identityUser, roles.ToList());
-
                     var response = new LoginResponseDto()
                     {
                         FirstName = identityUser.FirstName,
@@ -54,14 +53,10 @@ namespace CrudByNgAndDotNet.API.Controllers
                         Roles = roles.ToList(),
                         Token = jwtToken
                     };
-
-                    return Ok(response);
+                    return Ok(ApiResponseHelper.SuccessResult(response, "User Logged in successfully"));
                 }
             }
-            ModelState.AddModelError("", "Email or Password Incorrect");
-
-
-            return ValidationProblem(ModelState);
+             return Unauthorized(ApiResponseHelper.FailureResult("Invalid email or password.", StatusCodes.Status401Unauthorized));
         }
 
 
@@ -82,42 +77,23 @@ namespace CrudByNgAndDotNet.API.Controllers
                 isRegularUser = request.isRegularUser,
                 Role = request.Role,
             };
-
-            // Create User
-            var identityResult = await userManager.CreateAsync(user, request.Password);
-
-            if (identityResult.Succeeded)
+            if (!ModelState.IsValid)
             {
-                // Add Role to user (Reader)
-                identityResult = await userManager.AddToRoleAsync(user, request.Role);
-
-                if (identityResult.Succeeded)
-                {
-                    return Ok("User registered successfully.");
-                }
-                else
-                {
-                    if (identityResult.Errors.Any())
-                    {
-                        foreach (var error in identityResult.Errors)
-                        {
-                            ModelState.AddModelError("", error.Description);
-                        }
-                    }
-                }
+                return BadRequest(ApiResponseHelper.FailureResult("Invalid request.", StatusCodes.Status400BadRequest));
             }
-            else
+            var result = await userManager.CreateAsync(user, request.Password);
+
+            if (!result.Succeeded)
             {
-                if (identityResult.Errors.Any())
-                {
-                    foreach (var error in identityResult.Errors)
-                    {
-                        ModelState.AddModelError("", error.Description);
-                    }
-                }
+                return BadRequest(ApiResponseHelper.FailureResult("Invalid request", StatusCodes.Status401Unauthorized, result.Errors));
             }
 
-            return ValidationProblem(ModelState);
+            // Add user to the specified role
+            if (!string.IsNullOrEmpty(request.Role))
+            {
+                await userManager.AddToRoleAsync(user, request.Role);
+            }
+            return Ok(ApiResponseHelper.SuccessResult(user , "User registered successfully."));
         }
 
         // RESET PASSWORD
@@ -126,11 +102,11 @@ namespace CrudByNgAndDotNet.API.Controllers
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
         {
             if (!ModelState.IsValid)
-                return BadRequest();
+                return BadRequest(ApiResponseHelper.FailureResult("Invalid request", StatusCodes.Status400BadRequest));
 
             var user = await userManager.FindByEmailAsync(forgotPasswordDto.Email);
             if (user == null)
-                return BadRequest("Invalid Request");
+                return NotFound(ApiResponseHelper.FailureResult("User not found.", StatusCodes.Status404NotFound));
 
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
             var param = new Dictionary<string, string?>
@@ -144,28 +120,28 @@ namespace CrudByNgAndDotNet.API.Controllers
 
             await _emailSender.ForgotPasswordSendEmailAsync(message);
 
-            return Ok(param);
+            return Ok(ApiResponseHelper.SuccessResult(param, "Reset password request submitted successfully."));
         }
 
         [HttpPost("ResetPassword")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
         {
             if (!ModelState.IsValid)
-                return BadRequest();
+                return BadRequest(ApiResponseHelper.FailureResult("Invalid request", StatusCodes.Status400BadRequest));
 
             var user = await userManager.FindByEmailAsync(resetPasswordDto.Email);
             if (user == null)
-                return BadRequest("Invalid Request");
+                return NotFound(ApiResponseHelper.FailureResult("Data not found.", StatusCodes.Status404NotFound));
 
             var resetPassResult = await userManager.ResetPasswordAsync(user, resetPasswordDto.Token, resetPasswordDto.Password);
             if (!resetPassResult.Succeeded)
             {
                 var errors = resetPassResult.Errors.Select(e => e.Description);
 
-                return BadRequest(new { Errors = errors });
+                return BadRequest(ApiResponseHelper.FailureResult("Invalid request", StatusCodes.Status400BadRequest,errors));
             }
 
-            return Ok();
+            return Ok(ApiResponseHelper.SuccessResult("Reset password successfully.", "Password has been changed, Please enter new credential to login."));
         }
     }
 }

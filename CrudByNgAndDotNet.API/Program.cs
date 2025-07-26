@@ -1,4 +1,5 @@
 using CrudByNgAndDotNet.API.Data;
+using CrudByNgAndDotNet.API.Helper;
 using CrudByNgAndDotNet.API.Models.Domain;
 using CrudByNgAndDotNet.API.Models.DTO;
 using CrudByNgAndDotNet.API.Models.Settings;
@@ -24,15 +25,27 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("CrudByNgAndDotNetConnectionString"));
-});
+
+    options.UseSqlServer(builder.Configuration.GetConnectionString("CrudByNgAndDotNetConnectionString"),
+          sqlOptions => sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null
+        )
+        )
+);
 
 
 builder.Services.AddDbContext<AuthDbContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("CrudByNgAndDotNetConnectionString"));
-});
+
+    options.UseSqlServer(builder.Configuration.GetConnectionString("CrudByNgAndDotNetConnectionString"),
+          sqlOptions => sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null
+        )
+        )
+);
 builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
 var emailConfig = builder.Configuration
     .GetSection("EmailConfiguration")
@@ -105,7 +118,7 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "Images")),
     RequestPath = "/Images"
 });
-
+app.UseMiddleware<GlobalExceptionMiddleware>();
 app.MapControllers();
 
 app.Run();

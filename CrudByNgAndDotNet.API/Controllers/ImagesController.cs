@@ -1,4 +1,5 @@
-﻿using CrudByNgAndDotNet.API.Models.Domain;
+﻿using CrudByNgAndDotNet.API.Helper;
+using CrudByNgAndDotNet.API.Models.Domain;
 using CrudByNgAndDotNet.API.Models.DTO;
 using CrudByNgAndDotNet.API.Repositories.Interface;
 using Microsoft.AspNetCore.Http;
@@ -39,7 +40,7 @@ namespace CrudByNgAndDotNet.API.Controllers
                 });
             }
 
-            return Ok(response);
+            return Ok(ApiResponseHelper.SuccessResult(response));
         }
 
 
@@ -74,10 +75,10 @@ namespace CrudByNgAndDotNet.API.Controllers
                     Url = blogImage.Url
                 };
 
-                return Ok(response);
+                return Ok(ApiResponseHelper.SuccessResult(response));
             }
 
-            return BadRequest(ModelState);
+            return BadRequest(ApiResponseHelper.FailureResult("Invalid request",StatusCodes.Status400BadRequest, ModelState));
         }
 
         private void ValidateFileUpload(IFormFile file)
