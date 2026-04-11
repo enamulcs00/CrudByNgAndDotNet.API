@@ -17,48 +17,57 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "CRUD BY DOT NET AND ENAMUL API",
+        Version = "v1"
+    });
+});
 
+// Main Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-
-    options.UseSqlServer(builder.Configuration.GetConnectionString("CrudByNgAndDotNetConnectionString"),
-          sqlOptions => sqlOptions.EnableRetryOnFailure(
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("CrudByNgAndDotNetConnectionString"),
+        sqlOptions => sqlOptions.EnableRetryOnFailure(
             maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(10),
             errorNumbersToAdd: null
         )
-        )
+    )
 );
 
-
+// Auth Database
 builder.Services.AddDbContext<AuthDbContext>(options =>
-
-    options.UseSqlServer(builder.Configuration.GetConnectionString("CrudByNgAndDotNetConnectionString"),
-          sqlOptions => sqlOptions.EnableRetryOnFailure(
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("CrudByNgAndDotNetConnectionString"),
+        sqlOptions => sqlOptions.EnableRetryOnFailure(
             maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(10),
             errorNumbersToAdd: null
         )
-        )
+    )
 );
+
+// Mail settings
 builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
-var emailConfig = builder.Configuration
-    .GetSection("EmailConfiguration")
-    .Get<EmailConfiguration>();
+var emailConfig = builder.Configuration.GetSection("EmailConfiguration").Get<EmailConfiguration>();
 builder.Services.AddSingleton(emailConfig);
 builder.Services.AddTransient<ISendEmail, EmailService>();
+
+// Repositories
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IBlogPostRepository, BlogPostRepository>();
 builder.Services.AddScoped<IImageRepository, ImageRepository>();
 builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 
-
+// Identity
 builder.Services.AddIdentityCore<RegisterUser>()
     .AddRoles<IdentityRole>()
     .AddTokenProvider<DataProtectorTokenProvider<RegisterUser>>("CrudByNgAndDotNet")
@@ -75,6 +84,7 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequiredUniqueChars = 1;
 });
 
+// JWT Auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -87,25 +97,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey =
-            new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])
+            )
         };
     });
 
 builder.WebHost
     .CaptureStartupErrors(true)
     .UseSetting("detailedErrors", "true");
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Middleware pipeline
 
-    app.UseSwagger();
+// Always enable Swagger
+app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "CRUD BY DOT NET AND ENAMUL API V1");
-    c.RoutePrefix = string.Empty; // Opens Swagger on root URL
+    c.RoutePrefix = string.Empty; // Swagger UI will be at root: https://localhost:7226/
 });
-
 
 app.UseHttpsRedirection();
 
@@ -119,12 +131,17 @@ app.UseCors(options =>
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Static files
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "Images")),
     RequestPath = "/Images"
 });
+
+// Global exception handling
 app.UseMiddleware<GlobalExceptionMiddleware>();
+
+// Map controllers
 app.MapControllers();
 
 app.Run();
