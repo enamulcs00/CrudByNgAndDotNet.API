@@ -9,5 +9,7 @@ namespace CrudByNgAndDotNet.API.Models.model
         public string Address { get; set; }
         public bool isRegularUser { get; set; }
         public string Role { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiry { get; set; }
     }
 }

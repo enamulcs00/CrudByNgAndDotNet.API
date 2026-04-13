@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CrudByNgAndDotNet.API.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase

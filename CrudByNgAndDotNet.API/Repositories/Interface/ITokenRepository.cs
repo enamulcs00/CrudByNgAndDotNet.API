@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using CrudByNgAndDotNet.API.Models.model;
+using Microsoft.AspNetCore.Identity;
 
 namespace CrudByNgAndDotNet.API.Repositories.Interface
 {
     public interface ITokenRepository
     {
-        string CreateJwtToken(IdentityUser user, List<string> roles);
+        string CreateJwtToken(RegisterUser user, List<string> roles);
+        string CreateRefreshToken();
     }
 }

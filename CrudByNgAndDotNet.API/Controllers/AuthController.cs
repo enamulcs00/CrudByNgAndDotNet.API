@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.WebUtilities;
 using CrudByNgAndDotNet.API.Models.Domain;
 using CrudByNgAndDotNet.API.Helper;
 using CrudByNgAndDotNet.API.Models.model;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 namespace CrudByNgAndDotNet.API.Controllers
 {
     [Route("api/[controller]")]
@@ -44,6 +46,28 @@ namespace CrudByNgAndDotNet.API.Controllers
                     var roles = await userManager.GetRolesAsync(identityUser);
                    // Create a Token and Response
                     var jwtToken = tokenRepository.CreateJwtToken(identityUser, roles.ToList());
+                    var refreshToken = tokenRepository.CreateRefreshToken();
+                    identityUser.RefreshToken = refreshToken;
+                    identityUser.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+
+                    await userManager.UpdateAsync(identityUser);
+                    Response.Cookies.Append("accessToken", jwtToken, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.None,
+                        Path = "/",
+                        Expires = DateTime.UtcNow.AddSeconds(100)
+                    });
+
+                    Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.None,
+                        Path = "/",
+                        Expires = DateTime.UtcNow.AddDays(7)
+                    });
                     var response = new LoginResponseDto()
                     {
                         FirstName = identityUser.FirstName,
@@ -52,14 +76,42 @@ namespace CrudByNgAndDotNet.API.Controllers
                         Address = identityUser.Address,
                         Email = request.Email,
                         Roles = roles.ToList(),
-                        Token = jwtToken
+                        Token = jwtToken,
+                        RefreshToken = refreshToken
                     };
                     return Ok(ApiResponseHelper.SuccessResult(response, "User Logged in successfully"));
                 }
             }
              return Unauthorized(ApiResponseHelper.FailureResult("Invalid email or password.", StatusCodes.Status401Unauthorized));
         }
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
 
+            var user = userManager.Users
+                .FirstOrDefault(x => x.RefreshToken == refreshToken);
+
+            if (user == null || user.RefreshTokenExpiry < DateTime.UtcNow)
+            {
+                return Unauthorized();
+            }
+
+            var roles = await userManager.GetRolesAsync(user);
+
+            var newJwt = tokenRepository.CreateJwtToken(user, roles.ToList());
+
+            Response.Cookies.Append("accessToken", newJwt, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Path = "/",
+                Expires = DateTime.UtcNow.AddMinutes(15)
+            });
+
+            return Ok();
+        }
 
         // POST: {apibaseurl}/api/auth/register
         [HttpPost]
@@ -143,6 +195,48 @@ namespace CrudByNgAndDotNet.API.Controllers
             }
 
             return Ok(ApiResponseHelper.SuccessResult("Reset password successfully.", "Password has been changed, Please enter new credential to login."));
+        }
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("accessToken", new CookieOptions
+            {
+                Path = "/",
+                Secure = true,
+                SameSite = SameSiteMode.None
+            });
+
+            Response.Cookies.Delete("refreshToken", new CookieOptions
+            {
+                Path = "/",
+                Secure = true,
+                SameSite = SameSiteMode.None
+            });
+
+            return Ok();
+        }
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> Me()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (userId == null)
+                return Unauthorized();
+
+            var user = await userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return Unauthorized();
+
+            var roles = await userManager.GetRolesAsync(user);
+
+            return Ok(new
+            {
+                userName = user.UserName,
+                email = user.Email,
+                roles = roles
+            });
         }
     }
 }

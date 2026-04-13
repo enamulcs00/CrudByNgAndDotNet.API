@@ -1,4 +1,5 @@
-﻿using CrudByNgAndDotNet.API.Repositories.Interface;
+﻿using CrudByNgAndDotNet.API.Models.model;
+using CrudByNgAndDotNet.API.Repositories.Interface;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -16,30 +17,39 @@ namespace CrudByNgAndDotNet.API.Repositories.Implementation
             this.configuration = configuration;
         }
 
-        public string CreateJwtToken(IdentityUser user, List<string> roles)
+        public string CreateJwtToken(RegisterUser user, List<string> roles)
         {
-            // Create Claims
             var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id),
+        new Claim(ClaimTypes.Name, user.UserName),
+        new Claim(ClaimTypes.Email, user.Email)
+    };
+
+            foreach (var role in roles)
             {
-                new Claim(ClaimTypes.Email, user.Email)
-            };
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
 
-            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(configuration["Jwt:Key"])
+            );
 
-            // JWT Security Token Parameters
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
-
-            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
                 issuer: configuration["Jwt:Issuer"],
                 audience: configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(15),
-                signingCredentials: credentials);
+                expires: DateTime.UtcNow.AddMinutes(15),
+                signingCredentials: creds
+            );
 
-            // Return Token
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+        public string CreateRefreshToken()
+        {
+            return Guid.NewGuid().ToString();
         }
     }
 }
