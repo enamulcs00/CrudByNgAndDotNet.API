@@ -16,9 +16,9 @@ namespace CrudByNgAndDotNet.API.Helper
             };
         }
 
-        public static ApiResponse<string> FailureResult(string message, int statusCode = StatusCodes.Status400BadRequest, object errorDetails = null)
+        public static ApiResponse<object> FailureResult(string message, int statusCode = StatusCodes.Status400BadRequest, object errorDetails = null)
         {
-            return new ApiResponse<string>
+            return new ApiResponse<object>
             {
                 Status = false,
                 StatusCode = statusCode,

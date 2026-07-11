@@ -76,7 +76,7 @@ namespace CrudByNgAndDotNet.API.Controllers
                         Address = identityUser.Address,
                         Email = request.Email,
                         Roles = roles.ToList(),
-                        Token = jwtToken,
+                    //    Token = jwtToken,
                         RefreshToken = refreshToken
                     };
                     return Ok(ApiResponseHelper.SuccessResult(response, "User Logged in successfully"));
@@ -220,23 +220,24 @@ namespace CrudByNgAndDotNet.API.Controllers
         public async Task<IActionResult> Me()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
             if (userId == null)
-                return Unauthorized();
-
+                return Unauthorized(ApiResponseHelper.FailureResult("User not found in claims.", StatusCodes.Status401Unauthorized));
             var user = await userManager.FindByIdAsync(userId);
-
             if (user == null)
-                return Unauthorized();
-
+                return Unauthorized(ApiResponseHelper.FailureResult("User does not exist.", StatusCodes.Status401Unauthorized));
             var roles = await userManager.GetRolesAsync(user);
-
-            return Ok(new
+            var response = new LoginResponseDto()
             {
-                userName = user.UserName,
-                email = user.Email,
-                roles = roles
-            });
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                isRegularUser = user.isRegularUser,
+                Address = user.Address,
+                Email = user.Email,
+                Roles = roles.ToList(),
+               // Token = Request.Cookies["accessToken"] ?? string.Empty
+            };
+            return Ok(ApiResponseHelper.SuccessResult(response, "User profile retrieved successfully"));
         }
+
     }
 }

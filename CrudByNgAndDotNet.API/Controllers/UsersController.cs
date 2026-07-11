@@ -1,66 +1,73 @@
 ﻿using CrudByNgAndDotNet.API.Helper;
 using CrudByNgAndDotNet.API.Models;
-using CrudByNgAndDotNet.API.Models.Domain;
 using CrudByNgAndDotNet.API.Models.DTO;
 using CrudByNgAndDotNet.API.Models.model;
-using CrudByNgAndDotNet.API.Repositories.Implementation;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CrudByNgAndDotNet.API.Controllers
 {
-    [Authorize]
+    [Authorize] // Requires a valid JWT bearer token for all endpoints by default
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly UserManager<RegisterUser> userManager;
+        private readonly UserManager<RegisterUser> _userManager;
+
         public UsersController(UserManager<RegisterUser> userManager)
         {
-            this.userManager = userManager;
+            _userManager = userManager;
         }
 
-
+        // GET: api/users
         [HttpGet]
-        public IActionResult GetAllRegisteredUsers()
+        [Authorize(Roles = "Admin,Manager")] // Only Admins or Managers can view the entire registry
+        public async Task<IActionResult> GetAllRegisteredUsers()
         {
-            var identityUser = userManager.Users;
-            // Convert Domain model to DTO
-            var response = new List<UserResponseDTo>();
-            foreach (var user in identityUser)
+            // Fully asynchronous database fetch using EF Core projection
+            var identityUsers = await _userManager.Users.ToListAsync();
+
+            // Transform domain models to Data Transfer Objects cleanly
+            var responseData = identityUsers.Select(user => new UserResponseDTo
             {
-                response.Add(new UserResponseDTo
-                {
-                    Id = user.Id,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Address = user.Address,
-                    isRegularUser = user.isRegularUser,
-                    Role = user.Role,
-                    PhoneNumber = user.PhoneNumber,
-                    Email = user.Email,
-                });
-            }
-            return Ok(ApiResponseHelper.SuccessResult(response));
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Address = user.Address,
+                isRegularUser = user.isRegularUser,
+                Role = user.Role,
+                PhoneNumber = user.PhoneNumber,
+                Email = user.Email
+            }).ToList();
+
+            return Ok(ApiResponseHelper.SuccessResult(responseData, "Registered users registry retrieved successfully."));
         }
-        // DELETE: {apibaseurl}/api/blogposts/{id}
+
+        // DELETE: api/users/{id}
         [HttpDelete]
-        [Route("{id:Guid}")]
-        [Authorize(Roles = "Writer")]
+        [Route("{id}")] // Generic string route pattern matching the parameters schema
+        [Authorize(Roles = "Admin")] // Critical destructive actions must require top-tier Admin elevation
         public async Task<IActionResult> DeleteUser([FromRoute] string id)
         {
-            var user = await userManager.FindByIdAsync(id);
-            if (user == null) 
-                return NotFound();
+            // Verify if the requested user identity profile exists on the host
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound(ApiResponseHelper.FailureResult($"User profile with reference identity '{id}' could not be located.", StatusCodes.Status404NotFound));
+            }
 
-            var result = await userManager.DeleteAsync(user);
+            // Execute database record eviction asynchronously
+            var result = await _userManager.DeleteAsync(user);
             if (result.Succeeded)
-                return NoContent();  // Return 204 No Content for a successful delete.
+            {
+                return Ok(ApiResponseHelper.SuccessResult($"User profile assigned to '{user.Email}' has been permanently terminated.", "User account eviction completed successfully."));
+            }
 
-            return StatusCode(500, "Internal server error");
+            // Extract native identity engine exceptions to stream back to the log schema pipeline
+            var structuralErrors = result.Errors.Select(e => e.Description).ToList();
+            return BadRequest(ApiResponseHelper.FailureResult("Account termination execution rejected by internal constraints.", StatusCodes.Status400BadRequest, structuralErrors));
         }
     }
 }
